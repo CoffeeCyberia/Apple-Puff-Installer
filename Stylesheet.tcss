@@ -215,3 +215,24 @@ Input.-invalid:focus {
     text-align: center;
     width: 60;
 }
+
+
+AutoComplete {
+    & AutoCompleteList {
+        max-height: 8;                 /* rows visible before scrolling */
+        background: #efebd4;
+        color: #5c6a72;
+        border-left: wide #93B259;
+    }
+
+    & .autocomplete--highlight-match {
+        color: #efebd4;
+        text-style: bold;
+    }
+
+    & .option-list--option-highlighted {
+        background: #93B259;
+        color: #efebd4;
+        text-style: bold;
+    }
+}

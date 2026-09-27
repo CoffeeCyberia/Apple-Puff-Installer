@@ -11,7 +11,7 @@ from textual.containers import Container, Center, Vertical, Horizontal
 from textual.screen import Screen
 from textual.theme import Theme
 import subprocess, re
-
+from textual_autocomplete import AutoComplete
 
 
 
@@ -32,7 +32,7 @@ LOGO = """
 
 """
 
-ConnectionStatusText = ""
+
 
 my_theme = Theme(
     name="my-theme",
@@ -42,6 +42,14 @@ my_theme = Theme(
 class Logo(Label):                                 #AI (Noted how it Works in the Obsidian Vault)
     def __init__(self) -> None:                    #AI
         super().__init__(LOGO, classes="title")    #AI
+
+def GetKeyboardLayouts():
+    output = subprocess.check_output(["localectl", "list-keymaps"], text=True)
+    return output.splitlines()
+
+def GetTimeZone():
+    output = subprocess.check_output(["timedatectl", "list-timezones"], text=True)
+    return output.splitlines()
 
 def GetNetworkInterfaces():
     out = subprocess.run("ls /sys/class/net | grep -E '^(en|wl)'", shell=True, capture_output=True, text=True)
@@ -64,6 +72,7 @@ class StartScreen(Screen):
 
 
 class SeconndScreen(Screen):
+    InternetConnected = False
     selected_interface: str | None = None
     entered_password: str | None = None
     selected_ssid: str | None = None
@@ -78,9 +87,12 @@ class SeconndScreen(Screen):
         with TabbedContent(classes="Installation"):
             with TabPane("Locale", classes="InstallationTabs"):
                 with Container(id="button2area"):
-                     yield Select((), id="SelectKeyboardLayout", classes="select1")
-                     yield Select((), id="SelectCountry", classes="select1")
-                     yield Select((), id="SelectTimeZone",classes="select1")
+                     layout_input = Input(placeholder="Search keyboard layout...", id="KeyboardLayoutInput",classes="select1")
+                     yield layout_input
+                     yield AutoComplete(layout_input, candidates=GetKeyboardLayouts())
+                     TimeZone_input = Input(placeholder="Search Time Zone...", id="TimeZoneInput", classes="select1")
+                     yield TimeZone_input
+                     yield AutoComplete(TimeZone_input, candidates=GetTimeZone())
             with TabPane("Device Selection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Label("[#5c6a72]On Which Devive do you want to Install Apple Puff?[/#5c6a72]",classes="DevSecText DevSec")
@@ -104,19 +116,19 @@ class SeconndScreen(Screen):
                     #)
             with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
-                    yield Input(placeholder="Enter Username", id="EnterUsername")
-                    yield Input(placeholder="Enter Password", id="EnterUserPassword", password=True)
-                    yield Input(placeholder="Enter Password Again", id="EnterUserPassword2", password=True)
-                    yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True)
-                    yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True)
-                    yield Input(placeholder="Enter Hostname", id="EnterHostname")
+                    yield Input(placeholder="Enter Username", id="EnterUsername", classes="select1")
+                    yield Input(placeholder="Enter Password", id="EnterUserPassword", password=True, classes="select1")
+                    yield Input(placeholder="Enter Password Again", id="EnterUserPassword2", password=True, classes="select1")
+                    yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True, classes="select1")
+                    yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True, classes="select1")
+                    yield Input(placeholder="Enter Hostname", id="EnterHostname", classes="select1")
             with TabPane("Network Connection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     NetworkInterfaces = GetNetworkInterfaces()
                     yield Select(((NetInt, NetInt)for NetInt in NetworkInterfaces), id="SelectNetworkInterface", classes="select1")
                     yield Select(options=[], id="SSID-Select", classes="select1")
                     yield Input(placeholder="Enter Password", id="EnterWLANPassword", password=True)
-                    yield Static(ConnectionStatusText, id="ConnectionStatus")
+                    yield Static(id="ConnectionStatus")
                     yield Button("Connect", id="ConnectWLANButton", classes="button1")
                     
 
@@ -162,7 +174,14 @@ class SeconndScreen(Screen):
                 with Container(id="button2area"):
                     yield Label ("Test")  
 
+    @on(Input.Changed, "#TimeZoneInput")
+    def on_layout_changed(self, event: Input.Changed) -> None:
+        print("Make something")
 
+    @on(Input.Changed, "#KeyboardLayoutInput")
+    def on_layout_changed(self, event: Input.Changed) -> None:
+        self.selected_layout = event.value
+    
     @on(Select.Changed, "#SelectNetworkInterface")
     def on_network_interface_selected(self, event: Select.Changed) -> None:
         SSID_select = self.query_one("#SSID-Select", Select)
@@ -207,6 +226,7 @@ class SeconndScreen(Screen):
             if LANOUT == "up":
                 ConnectionStatus.update("Internet Connected")
                 ConnectionStatus.styles.color = "#8DA101"
+                InternetConnected = True
             else:
                 ConnectionStatus.update("Connection Failed:")
                 ConnectionStatus.styles.color = "#F85552"
@@ -248,6 +268,7 @@ class SeconndScreen(Screen):
                 )
                 ConnectionStatus.update("Connection Established")
                 ConnectionStatus.styles.color = "#8DA101"
+                InternetConnected = True
             except subprocess.CalledProcessError:
                 ConnectionStatus.update("Connection Failed")
                 ConnectionStatus.styles.color = "#F85552"
