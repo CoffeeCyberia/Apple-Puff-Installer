@@ -13,9 +13,6 @@ from textual.theme import Theme
 import subprocess, re
 from textual_autocomplete import AutoComplete
 
-
-
-
 LOGO = """       
 
 
@@ -31,8 +28,6 @@ LOGO = """
 [#F85552].8'       `8. `88888. [/#F85552][#DFA000] 8 8888         [/#DFA000][#8DA101]8 8888         [/#8DA101][#3A94C5] 8 888888888888 [/#3A94C5][#DF69BA]8 888888888888[/#DF69BA]           [#35A77C]8 8888        [/#35A77C][#F57D26]    `Y88888P'  [/#F57D26][#F85552] 8 8888         [/#F85552][#DFA000]8 8888         [/#DFA000]
 
 """
-
-
 
 my_theme = Theme(
     name="my-theme",
@@ -52,11 +47,9 @@ def GetTimeZone():
     return output.splitlines()
 
 def GetNetworkInterfaces():
-    out = subprocess.run("ls /sys/class/net | grep -E '^(en|wl)'", shell=True, capture_output=True, text=True)
+    out = subprocess.run("ls /sys/class/net | grep -E '^(en|wl)'", shell=True, capture_output=True, text=True) #AI
     interfaces = out.stdout.split()
     return interfaces
-    #return sorted(n for n in os.listdir("/sys/class/net") if n != "lo")
-
 
 class StartScreen(Screen):
     def compose(self):
@@ -70,12 +63,13 @@ class StartScreen(Screen):
         if event.button.id == "Exit":                           #
             self.app.exit()                                     #
 
-
 class SeconndScreen(Screen):
+    # Variables for Summary Screen
     InternetConnected = False
     selected_interface: str | None = None
-    entered_password: str | None = None
     selected_ssid: str | None = None
+    # Variables for Functions
+    entered_password: str | None = None
     BINDINGS = [                                                #AI Helped me with the Bindings (Noted how it Works in the Obsidian Vault)
         Binding("left", "prev_tab", "Previous step"),           #
         Binding("right", "next_tab", "Next step"),              #
@@ -87,21 +81,16 @@ class SeconndScreen(Screen):
         with TabbedContent(classes="Installation"):
             with TabPane("Locale", classes="InstallationTabs"):
                 with Container(id="button2area"):
-                     layout_input = Input(placeholder="Search keyboard layout...", id="KeyboardLayoutInput",classes="select1")
-                     yield layout_input
-                     yield AutoComplete(layout_input, candidates=GetKeyboardLayouts())
-                     TimeZone_input = Input(placeholder="Search Time Zone...", id="TimeZoneInput", classes="select1")
-                     yield TimeZone_input
-                     yield AutoComplete(TimeZone_input, candidates=GetTimeZone())
+                     layout_input = Input(placeholder="Search keyboard layout...", id="KeyboardLayoutInput",classes="select1")  #AI
+                     yield layout_input                                                                                         #
+                     yield AutoComplete(layout_input, candidates=GetKeyboardLayouts())                                          #
+                     TimeZone_input = Input(placeholder="Search Time Zone...", id="TimeZoneInput", classes="select1")           #
+                     yield TimeZone_input                                                                                       #
+                     yield AutoComplete(TimeZone_input, candidates=GetTimeZone())                                               #
             with TabPane("Device Selection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Label("[#5c6a72]On Which Devive do you want to Install Apple Puff?[/#5c6a72]",classes="DevSecText DevSec")
                     yield Label("[#F85552]!THE WHOLE DEVICE WILL BE EREASED![/#F85552]",classes="DevSecText DevSec")
-                    # lsblk -o NAME,MODEL,SIZE ausgabe trennen so das jede zeile ein eintrag in einem array ist. So viele wie dann im array ist so viele macht es dann als yield
-                    # DiskNumber = 0
-                    # for i in Disks:
-                    #   yield Label(Disk[DiskNumber])
-                    #   DiskNumber + 1
                     diskoutput = subprocess.check_output(           #AI corrected my Idea (Noted how it Works in the Obsidian Vault)
                         ["lsblk", "-dn", "-o", "NAME,MODEL,SIZE"],  #
                         text=True                                   #
@@ -111,9 +100,6 @@ class SeconndScreen(Screen):
                         with RadioSet(classes="RadioSetDisk"):
                             for disk in Disks:
                                 yield RadioButton(disk)
-                    #yield Select(((line, line) for line in Disks),
-                    #classes="DevSec SelectDisk"
-                    #)
             with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Input(placeholder="Enter Username", id="EnterUsername", classes="select1")
@@ -125,40 +111,11 @@ class SeconndScreen(Screen):
             with TabPane("Network Connection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     NetworkInterfaces = GetNetworkInterfaces()
-                    yield Select(((NetInt, NetInt)for NetInt in NetworkInterfaces), id="SelectNetworkInterface", classes="select1")
+                    yield Select(((NetInt, NetInt)for NetInt in NetworkInterfaces), id="SelectNetworkInterface", classes="select1") #AI
                     yield Select(options=[], id="SSID-Select", classes="select1")
                     yield Input(placeholder="Enter Password", id="EnterWLANPassword", password=True)
                     yield Static(id="ConnectionStatus")
                     yield Button("Connect", id="ConnectWLANButton", classes="button1")
-                    
-
-                    test= """
-                    def network_interface_selected(self, event: Select.Changed) -> None:
-                        if event.value == Select.NULL:
-                            return
-                        self.selected_interface = event.value
-                        subprocess.run(
-                        ["iwctl", "station", self.selected_interface, "scan"],
-                        check=True
-                        )
-                    """
-                    
-                    
-                    test= """
-                    async def interface_selected(self, event: Select.Changed) -> None: # Defenetly AI i dont know this shit
-                        if event.value is Select.BLANK:
-                            return
-
-                        SSIDs = [("DHCP", "dhcp"), ("Static", "static")]
-                        existing = self.query("#SSID Select")
-                        if existing:
-                            existing.first(Select).set_options(SSIDs)
-                        else:
-                            await self.query_one("#button2area", Container).mount(
-                                Select(SSIDs, prompt="Choose IP mode", id="second_select")
-                            ) 
-                            """
-                    
 
             with TabPane("Software", classes="InstallationTabs"):
                 with Container(id="button2area"):
@@ -174,24 +131,24 @@ class SeconndScreen(Screen):
                 with Container(id="button2area"):
                     yield Label ("Test")  
 
-    @on(Input.Changed, "#TimeZoneInput")
-    def on_layout_changed(self, event: Input.Changed) -> None:
+    @on(Input.Changed, "#TimeZoneInput")                            #AI
+    def on_layout_changed(self, event: Input.Changed) -> None:      #
         print("Make something")
 
-    @on(Input.Changed, "#KeyboardLayoutInput")
-    def on_layout_changed(self, event: Input.Changed) -> None:
-        self.selected_layout = event.value
+    @on(Input.Changed, "#KeyboardLayoutInput")                      #AI
+    def on_layout_changed(self, event: Input.Changed) -> None:      #
+        self.selected_layout = event.value                          #
     
     @on(Select.Changed, "#SelectNetworkInterface")
     def on_network_interface_selected(self, event: Select.Changed) -> None:
-        SSID_select = self.query_one("#SSID-Select", Select)
+        SSID_select = self.query_one("#SSID-Select", Select)               #AI
         Password_Input = self.query_one("#EnterWLANPassword", Input)
         Connect_Button = self.query_one("#ConnectWLANButton", Button)
         ConnectionStatus = self.query_one("#ConnectionStatus", Static)
         if event.value == Select.NULL:
-            SSID_select.styles.display = "none"
+            SSID_select.styles.display = "none"     #AI
             Password_Input.styles.display = "none"
-            Connect_Button.styles.display = "none"
+            Connect_Button.styles.display = "none"  
             ConnectionStatus.styles.display = "none"
             return
         
@@ -202,19 +159,18 @@ class SeconndScreen(Screen):
             ["sudo", "iwctl", "station", event.value, "scan"]
             )
             output = subprocess.check_output(
-                ["sh", "-c", r"""iwctl station "$1" get-networks | sed 's/\x1b\[[0-9;]*m//g' | tail -n +5 | sed 's/^[ >]*//; s/ \{2,\}.*//' | grep -v '^$'""", "sh", event.value],
+                ["sh", "-c", r"""iwctl station "$1" get-networks | sed 's/\x1b\[[0-9;]*m//g' | tail -n +5 | sed 's/^[ >]*//; s/ \{2,\}.*//' | grep -v '^$'""", "sh", event.value],  #AI
                 text=True,
             )
-            new_options = [line for line in output.splitlines() if line.strip()]
+            new_options = [line for line in output.splitlines() if line.strip()] #AI
 
-            SSID_select.set_options((s, s) for s in new_options)
-            SSID_select.clear
-            SSID_select.styles.display = "block" 
-            Password_Input.clear
+            SSID_select.set_options((s, s) for s in new_options)  #AI
+            SSID_select.clear                                     #AI
+            SSID_select.styles.display = "block"                  #AI
+            Password_Input.clear   
             Password_Input.styles.display = "block"
             Connect_Button.styles.display = "block"
             
-
         elif "en" in event.value:
             ConnectionStatus.styles.display = "none"
             command = "/sys/class/net/" + event.value + "/operstate"
@@ -232,15 +188,12 @@ class SeconndScreen(Screen):
                 ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
 
-
         else:
             ConnectionStatus = self.query_one("#ConnectionStatus", Static)
             ConnectionStatus.update("Something Went Wrong, Please Select an WLAN or LAN interface")
             ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
                     
-
-
     @on(Select.Changed, "#SSID-Select")
     def on_ssid_selected(self, event: Select.Changed) -> None:
         self.selected_ssid = event.value
@@ -259,8 +212,6 @@ class SeconndScreen(Screen):
             ssid = self.selected_ssid
             password_quoted = '"' + password + '"' #Ai told me how to add Quotes to a Variable
             ssid_quoted = '"' + ssid + '"'
-            #ConnectSuccess = '"' + "Success: Connected!" + '"'
-            #ConnectFail = '"' + "Failure: Could not connect." + '"'
             try:              #Ai told about try and exept
                 subprocess.run(
                 ["sudo", "iwctl", "--passphrase", password_quoted, "station", interface, "connect", ssid],
@@ -274,33 +225,6 @@ class SeconndScreen(Screen):
                 ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
 
-            
-
-                
-
-            test='''
-            WLANStatus = subprocess.check_output(
-                ["sudo", "iwctl","--passphrase", password_quoted, "station", interface, "connect", ssid_quoted, "&&", "echo", ConnectSuccess, "||", "echo", ConnectFail],
-                check=True,
-                shell=True
-                )
-            if WLANStatus == ConnectSuccess:
-                ConnectionStatus.update("Connection Established")
-                ConnectionStatus.styles.display = "block"
-                ConnectionStatus.styles.color = "#8DA101"
-
-            elif WLANStatus == ConnectFail:
-                ConnectionStatus.update("Connection Failed")
-                ConnectionStatus.styles.display = "block"
-                ConnectionStatus.styles.color = "#F85552"
-            else:
-                ConnectionStatus.update("Something went wrong")
-                ConnectionStatus.styles.display = "block"
-                ConnectionStatus.styles.color = "#F85552"
-                '''
-
-    
-
 def on_mount(self) -> None:                                             #AI
     self.query_one(TabbedContent).query_one(Tabs).can_focus = False     #AI
 
@@ -309,9 +233,6 @@ def action_prev_tab(self) -> None:                                      #AI
 
 def action_next_tab(self) -> None:                                      #AI
     self.query_one(TabbedContent).query_one(Tabs).action_next_tab()     #AI (Noted how it Works in the Obsidian Vault)
-
-
-
 
 class ArchInstaller(App):
         CSS_PATH = "Stylesheet.tcss"
