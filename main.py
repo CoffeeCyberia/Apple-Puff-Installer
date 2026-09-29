@@ -29,6 +29,7 @@ LOGO = """
 
 """
 
+
 my_theme = Theme(
     name="my-theme",
     primary="#93B259",
@@ -65,11 +66,16 @@ class StartScreen(Screen):
 
 class SeconndScreen(Screen):
     # Variables for Summary Screen
+    selected_TimeZone: str | None = None
+    selected_layout: str | None = None
     InternetConnected = False
-    selected_interface: str | None = None
-    selected_ssid: str | None = None
+    Selected_disk: str | None = None
     # Variables for Functions
+    selected_ssid: str | None = None
+    selected_interface: str | None = None
     entered_password: str | None = None
+    selected_PartitionTable: str | None = None
+    Summary = "Timezone: ",selected_TimeZone , "\n", "Selected Keyboard Layout: ", selected_layout, "\n", "Slected Disk to install Apple Puff on: ", Selected_disk, "\n", "Internet Connected: ",InternetConnected, "\n"
     BINDINGS = [                                                #AI Helped me with the Bindings (Noted how it Works in the Obsidian Vault)
         Binding("left", "prev_tab", "Previous step"),           #
         Binding("right", "next_tab", "Next step"),              #
@@ -97,9 +103,10 @@ class SeconndScreen(Screen):
                     )                                               #
                     Disks = diskoutput.splitlines()                 #
                     with Center():                                  # Ai Told me about Center (Noted how it Works in the Obsidian Vault)
-                        with RadioSet(classes="RadioSetDisk"):
+                        with RadioSet(classes="RadioSetDisk", id="SelectDisk"):
                             for disk in Disks:
                                 yield RadioButton(disk)
+                        yield Select(options=["GPT","MBR"], id="PartitionTable", classes="select1")
             with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Input(placeholder="Enter Username", id="EnterUsername", classes="select1")
@@ -126,25 +133,45 @@ class SeconndScreen(Screen):
                         ("LibreOffice", 3),
                         ("Btop", 4, True),
                         ("cmus", 5, True)
+
                     )
             with TabPane("Summary", classes="InstallationTabs"):
                 with Container(id="button2area"):
-                    yield Label ("Test")  
+                    yield Static(classes="SummaryLabel", id="SummaryLabel")
+                    yield Button("Start Install", classes="button1", id="StartInstallScreen")
 
     @on(Input.Changed, "#TimeZoneInput")                            #AI
-    def on_layout_changed(self, event: Input.Changed) -> None:      #
-        print("Make something")
+    def on_TimeZone_changed(self, event: Input.Changed) -> None:      #
+        self.selected_TimeZone = event.value
+        SummaryScreen = self.query_one("#SummaryLabel", Static)
+        SummaryScreen.update(self.Summary)
+        subprocess.run("timedateclt set-timezone " + event.value)
 
     @on(Input.Changed, "#KeyboardLayoutInput")                      #AI
     def on_layout_changed(self, event: Input.Changed) -> None:      #
         self.selected_layout = event.value                          #
-    
+        SummaryScreen = self.query_one("#SummaryLabel", Static)
+        SummaryScreen.update(self.Summary)     
+        subprocess.run("loadkeys " + event.value)
+
+
+    @on(RadioButton.Changed, "#SelectDisk")
+    def on_disk_changed(self, event: RadioButton.Changed) -> None:
+        self.Selected_disk = event.value
+        SummaryScreen = self.query_one("#SummaryLabel", Static)
+        SummaryScreen.update(self.Summary) 
+
+    @on(Select.Changed, "#PartitionTable")
+    def on_Partition_Table_changed(self, event: Select.Changed) -> None:
+        self.selected_PartitionTable = event.value
+
     @on(Select.Changed, "#SelectNetworkInterface")
     def on_network_interface_selected(self, event: Select.Changed) -> None:
         SSID_select = self.query_one("#SSID-Select", Select)               #AI
         Password_Input = self.query_one("#EnterWLANPassword", Input)
         Connect_Button = self.query_one("#ConnectWLANButton", Button)
         ConnectionStatus = self.query_one("#ConnectionStatus", Static)
+        SummaryScreen = self.query_one("#SummaryLabel", Static)
         if event.value == Select.NULL:
             SSID_select.styles.display = "none"     #AI
             Password_Input.styles.display = "none"
@@ -183,6 +210,7 @@ class SeconndScreen(Screen):
                 ConnectionStatus.update("Internet Connected")
                 ConnectionStatus.styles.color = "#8DA101"
                 InternetConnected = True
+                
             else:
                 ConnectionStatus.update("Connection Failed:")
                 ConnectionStatus.styles.color = "#F85552"
@@ -193,6 +221,7 @@ class SeconndScreen(Screen):
             ConnectionStatus.update("Something Went Wrong, Please Select an WLAN or LAN interface")
             ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
+        SummaryScreen.update(self.Summary)
                     
     @on(Select.Changed, "#SSID-Select")
     def on_ssid_selected(self, event: Select.Changed) -> None:
@@ -225,6 +254,70 @@ class SeconndScreen(Screen):
                 ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
 
+    @on(Button.Pressed, "#StartInstallScreen")
+    def on_button_pressed(self, event: Button.Pressed,):
+        if event.button.id == "StartInstallScreen":
+            self.app.push_screen(PostInstallScreen())
+
+class PostInstallScreen(Screen):
+    def compose(self):
+        yield Logo()
+        with Container(id="button2area"):
+            yield Static("Are You Sure you want to Install Apple Puff Linux?")
+            yield Static("[#F85552]Everything on the Selected Disk will be Ereased[/#F85552]")
+            yield Button("Go Back", id="GoBack")
+            yield Button("Start Install", id="StartInstall")
+    @on(Button.Pressed, "#StartInstallScreen")
+    def on_button_pressed(self, event: Button.Pressed,):
+        if event.button.id == "StartInstall":
+            self.app.push_screen(InstallScreen())
+        if event.button.id == "GoBack":
+            self.app.push_screen(SeconndScreen())
+
+def Partition_the_Drive(Disk, Partitiontable,):
+    DiskCommandGPT = "parted -s /dev/" + SeconndScreen().Selected_disk + " mklabel gpt" + "mkpart primary FAT32 1MiB 1GiB mkpart primary swap 1GiB 3GiB mkpart primary ext4 3GiB 100% && mkfs.fat -F 32 /dev/" + SeconndScreen().Selected_disk + "1 && sudo mkswap /dev/" + SeconndScreen().Selected_disk + "2 && sudo mkfs.ext4 /dev/" + SeconndScreen().Selected_disk + "3"
+    DiskCommandMBR = "parted -s /dev/" + SeconndScreen().Selected_disk + " mklabel mbr" + "mkpart primary swap 1MiB 2GiB mkpart primary ext4 2GiB 100% && sudo mkswap /dev/" + SeconndScreen().Selected_disk + "1 && sudo mkfs.ext4 /dev/" + SeconndScreen().Selected_disk + "2"
+    if SeconndScreen().selected_PartitionTable == "MBR":
+        subprocess.run(DiskCommandMBR, shell=True)
+        return("Complete")
+    elif SeconndScreen().selected_PartitionTable == "GPT":
+        subprocess.run(DiskCommandGPT, shell=True)
+        return("Complete")
+    else:
+        return("Failed")
+
+
+class InstallScreen(Screen):
+
+    def compose(self):
+        yield Logo
+        with Container:
+            yield Static("WIP")
+            yield Static(id="InstallErrors")
+            yield Button("Back", id="WIPBack")
+            
+
+
+    @on(Button.Pressed, "#StartInstallScreen")
+    def on_button_pressed(self, event: Button.Pressed,):
+        InstallErrors = self.query_one("#InstallErrors", Static)
+        InstallErrors.styles.display = "block"
+        InstallErrors.styles.color = "#5c6a72"
+        InstallErrors.update("Partitioning the Drive...")
+        if event.button.id == "WIPBACK":
+            self.app.push_screen(PostInstallScreen())
+        if event.button.id == "StartInstall":
+            if SeconndScreen().selected_PartitionTable == "MBR":
+                subprocess.run(self.DiskCommandMBR, shell=True)
+            elif SeconndScreen().selected_PartitionTable == "GPT":
+                subprocess.run(self.DiskCommandGPT, shell=True)
+            else:
+                InstallErrors.update("Did you Select if your Disk should be MBR or GPT?")
+                InstallErrors.styles.color = "#F85552"
+
+        
+        
+                
 def on_mount(self) -> None:                                             #AI
     self.query_one(TabbedContent).query_one(Tabs).can_focus = False     #AI
 
