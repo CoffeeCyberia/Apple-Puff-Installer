@@ -75,6 +75,9 @@ class SeconndScreen(Screen):
     selected_interface: str | None = None
     entered_password: str | None = None
     selected_PartitionTable: str | None = None
+    selected_Hostname: str | None = None
+    selected_Software: str | None = None
+    selected_Software_Array = []
     Summary = "Timezone: ",selected_TimeZone , "\n", "Selected Keyboard Layout: ", selected_layout, "\n", "Slected Disk to install Apple Puff on: ", Selected_disk, "\n", "Internet Connected: ",InternetConnected, "\n"
     BINDINGS = [                                                #AI Helped me with the Bindings (Noted how it Works in the Obsidian Vault)
         Binding("left", "prev_tab", "Previous step"),           #
@@ -115,6 +118,7 @@ class SeconndScreen(Screen):
                     yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True, classes="select1")
                     yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True, classes="select1")
                     yield Input(placeholder="Enter Hostname", id="EnterHostname", classes="select1")
+                    yield Button("Check", id="Check", classes="button1")
             with TabPane("Network Connection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     NetworkInterfaces = GetNetworkInterfaces()
@@ -164,6 +168,10 @@ class SeconndScreen(Screen):
     @on(Select.Changed, "#PartitionTable")
     def on_Partition_Table_changed(self, event: Select.Changed) -> None:
         self.selected_PartitionTable = event.value
+
+    @on(Input.Changed, "#EnterHostname")
+    def on_Hostname_Changed(self, event: Input.Changed) -> None:
+        self.selected_Hostname = event.value
 
     @on(Select.Changed, "#SelectNetworkInterface")
     def on_network_interface_selected(self, event: Select.Changed) -> None:
@@ -274,18 +282,115 @@ class PostInstallScreen(Screen):
         if event.button.id == "GoBack":
             self.app.push_screen(SeconndScreen())
 
-def Partition_the_Drive(Disk, Partitiontable,):
-    DiskCommandGPT = "parted -s /dev/" + SeconndScreen().Selected_disk + " mklabel gpt" + "mkpart primary FAT32 1MiB 1GiB mkpart primary swap 1GiB 3GiB mkpart primary ext4 3GiB 100% && mkfs.fat -F 32 /dev/" + SeconndScreen().Selected_disk + "1 && sudo mkswap /dev/" + SeconndScreen().Selected_disk + "2 && sudo mkfs.ext4 /dev/" + SeconndScreen().Selected_disk + "3"
-    DiskCommandMBR = "parted -s /dev/" + SeconndScreen().Selected_disk + " mklabel mbr" + "mkpart primary swap 1MiB 2GiB mkpart primary ext4 2GiB 100% && sudo mkswap /dev/" + SeconndScreen().Selected_disk + "1 && sudo mkfs.ext4 /dev/" + SeconndScreen().Selected_disk + "2"
-    if SeconndScreen().selected_PartitionTable == "MBR":
-        subprocess.run(DiskCommandMBR, shell=True)
-        return("Complete")
-    elif SeconndScreen().selected_PartitionTable == "GPT":
-        subprocess.run(DiskCommandGPT, shell=True)
-        return("Complete")
+def InstallResult(ResultStr):
+    InstallErrors = InstallScreen().query_one("#InstallErrors", Static)
+    if "Complete" in ResultStr:
+        InstallErrors.update( + "\n [#F85552]", ResultStr, "[/#F85552]")
+        return(True)
     else:
-        return("Failed")
+        InstallErrors.update(+ "\n [#93B259]", ResultStr, "[/#93B259]")
+        return(False)
 
+def InstallResult_no_InstallEorror(ResultStr):
+    InstallErrors = InstallScreen().query_one("#InstallErrors", Static)
+    if "Complete" in ResultStr:
+        return(True)
+    else:
+        return(False)
+
+
+def Partition_the_Drive(Disk, Partitiontable):
+    DiskCommandGPT = "parted -s /dev/" + Disk + " mklabel gpt" + "mkpart primary FAT32 1MiB 1GiB mkpart primary swap 1GiB 3GiB mkpart primary ext4 3GiB 100% && mkfs.fat -F 32 /dev/" + Disk + "1 && sudo mkswap /dev/" + Disk + "2 && sudo mkfs.ext4 /dev/" + Disk + "3"
+    DiskCommandMBR = "parted -s /dev/" + Disk + " mklabel mbr" + "mkpart primary swap 1MiB 2GiB mkpart primary ext4 2GiB 100% && sudo mkswap /dev/" + Disk + "1 && sudo mkfs.ext4 /dev/" + Disk + "2"
+    if Partitiontable == "MBR":
+        subprocess.run(DiskCommandMBR, shell=True)
+        return("Partitioning Complete")
+    elif Partitiontable == "GPT":
+        subprocess.run(DiskCommandGPT, shell=True)
+        return("Partitioning Complete")
+    else:
+        return("Partitioning Failed")
+
+def Mount_the_Partitions(Disk, Partitiontable):
+    MountCommandMBR = "mount /dev/" + Disk + "2 /mnt && swapon /dev/" + Disk + "1"
+    MountCommandGPT = "mount /dev/" + Disk + "3 /mnt && mount --mkdir /dev/" + Disk + "2 /mnt/boot && swapon /dev/" + Disk + "1"
+    if Partitiontable == "MBR":
+        subprocess.run(MountCommandMBR)
+        return("Mounting Complete")
+    elif Partitiontable == "GPT":
+        subprocess.run(MountCommandGPT)
+        return("Mounting Complete")
+    else:
+        return("Mounting Failed")
+
+def InstallSoftware(SoftwareArray):
+    SoftwareCommand = "pacstrap -K /mnt base linux linux-firmware iwd sudo man base-devel git libx11 libxft xorg-server xorg-xinit pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber rtkit grub"
+    for Software in SoftwareArray:
+        SoftwareCommand = SoftwareCommand + " " + Software
+        try:
+            subprocess.run(SoftwareCommand)
+            return("Installation Complete")
+        except subprocess.CalledProcessError as Error:
+            Error = str(Error)
+            return("Installation Failed: ", Error)
+
+def GenerateFstab():
+    try:
+        subprocess.run("genfstab -U /mnt >> /mnt/etc/fstab")
+        return("Generate Fstab Complete")
+    except subprocess.CalledProcessError as Error:
+        Error = str(Error)
+        return("Generate Fstab Failed: ", Error)
+
+def run_in_chroot(mount_path, command):
+    full_command = "arch-chroot -S " + mount_path + command
+    try:
+        subprocess.run(full_command)
+        return("Complete")
+    except subprocess.CalledProcessError as Error:
+        Error = str(Error)
+        return("Failed" + Error)
+
+    
+# dwm installation
+# systemctl --user enable --now pipewire.service pipewire-pulse.service wireplumber.service
+
+
+def ContinueInstall(FuntionToUse):
+    Result = FuntionToUse
+    Continue = InstallResult(Result)
+    if Continue == False:
+        return()
+
+def ContinueInstall_no_InstallEorror(FuntionToUse):
+    Result = FuntionToUse
+    Continue = InstallResult_no_InstallEorror(Result)
+    if Continue == False:
+        return()
+
+def Set_Locale(TimeZone, Locale, Keymap, Hostname):
+    Command_TimeZone = ""
+    Command_Locale = ""
+    Command_Keymap = ""
+    Command_Hostname = ""
+    if ContinueInstall_no_InstallEorror(run_in_chroot("/mnt", Command_TimeZone)) == False:
+        return("Failed to Set TimeZone")
+    if ContinueInstall_no_InstallEorror(run_in_chroot("/mnt", Command_Keymap)) == False:
+        return("Failed to Set Keymap")    
+    if ContinueInstall_no_InstallEorror(run_in_chroot("/mnt", Command_Locale)) == False:
+        return("Failed to Set Locale")    
+    if ContinueInstall_no_InstallEorror(run_in_chroot("/mnt", Command_Hostname)) == False:
+        return("Failed to Set Hostname")
+    return("Set Locale Complete")
+
+def Set_Root_PW():
+    print()
+
+def Create_User():
+    print()
+
+def Install_Grub():
+    print()
 
 class InstallScreen(Screen):
 
@@ -293,31 +398,36 @@ class InstallScreen(Screen):
         yield Logo
         with Container:
             yield Static("WIP")
+            yield Static(id="InstallStep")
             yield Static(id="InstallErrors")
             yield Button("Back", id="WIPBack")
             
-
-
     @on(Button.Pressed, "#StartInstallScreen")
     def on_button_pressed(self, event: Button.Pressed,):
         InstallErrors = self.query_one("#InstallErrors", Static)
         InstallErrors.styles.display = "block"
         InstallErrors.styles.color = "#5c6a72"
-        InstallErrors.update("Partitioning the Drive...")
+        InstallStep = self.query_one("#InstallErrors", Static)
+        
         if event.button.id == "WIPBACK":
             self.app.push_screen(PostInstallScreen())
         if event.button.id == "StartInstall":
-            if SeconndScreen().selected_PartitionTable == "MBR":
-                subprocess.run(self.DiskCommandMBR, shell=True)
-            elif SeconndScreen().selected_PartitionTable == "GPT":
-                subprocess.run(self.DiskCommandGPT, shell=True)
-            else:
-                InstallErrors.update("Did you Select if your Disk should be MBR or GPT?")
-                InstallErrors.styles.color = "#F85552"
+            InstallStep.update("Partitioning the Drive...")
+            if ContinueInstall(Partition_the_Drive(SeconndScreen().Selected_disk, SeconndScreen().selected_PartitionTable)) == False:
+                return()
+            InstallStep.update("Mounting the Drive...")
+            if ContinueInstall(Mount_the_Partitions(SeconndScreen().Selected_disk, SeconndScreen().selected_PartitionTable)) == False:
+                return()
+            InstallStep.update("Install Software...")
+            if ContinueInstall(InstallSoftware(SeconndScreen().selected_Software_Array)) == False:
+                return
+            InstallStep.update("Generate Fstab...")
+            if ContinueInstall(GenerateFstab()) == False:
+                return
+            InstallStep.update("Set Locale...")
+            if ContinueInstall(Set_Locale(SeconndScreen().selected_TimeZone, "en_US.UTF-8", SeconndScreen().selected_layout, SeconndScreen().selected_Hostname)) == False:
+                return
 
-        
-        
-                
 def on_mount(self) -> None:                                             #AI
     self.query_one(TabbedContent).query_one(Tabs).can_focus = False     #AI
 
@@ -348,4 +458,4 @@ class ArchInstaller(App):
     
 if __name__ == "__main__":
     app = ArchInstaller()
-    app.run()                       
+    app.run()
