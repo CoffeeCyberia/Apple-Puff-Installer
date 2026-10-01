@@ -6,7 +6,7 @@ import os
 from textual.binding import Binding
 from textual import on
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header, Static, Button, Label, TabbedContent, TabPane, RadioButton, RadioSet, Tabs, Select, Input, SelectionList
+from textual.widgets import Footer, Header, Static, Button, Label, TabbedContent, TabPane, RadioButton, RadioSet, Tabs, Select, Input, SelectionList, LoadingIndicator
 from textual.containers import Container, Center, Vertical, Horizontal
 from textual.screen import Screen
 from textual.theme import Theme
@@ -28,8 +28,6 @@ LOGO = """
 [#F85552].8'       `8. `88888. [/#F85552][#DFA000] 8 8888         [/#DFA000][#8DA101]8 8888         [/#8DA101][#3A94C5] 8 888888888888 [/#3A94C5][#DF69BA]8 888888888888[/#DF69BA]           [#35A77C]8 8888        [/#35A77C][#F57D26]    `Y88888P'  [/#F57D26][#F85552] 8 8888         [/#F85552][#DFA000]8 8888         [/#DFA000]
 
 """
-
-
 my_theme = Theme(
     name="my-theme",
     primary="#93B259",
@@ -52,6 +50,7 @@ def GetNetworkInterfaces():
     interfaces = out.stdout.split()
     return interfaces
 
+# The First Screen you will See when you Launch the TUI
 class StartScreen(Screen):
     def compose(self):
         yield Logo()
@@ -64,17 +63,28 @@ class StartScreen(Screen):
         if event.button.id == "Exit":                           #
             self.app.exit()                                     #
 
+# The Screen you will se after the Start Screen. Its here for the Selections of the Options for the Installer
 class SeconndScreen(Screen):
     # Variables for Summary Screen
     selected_TimeZone: str | None = None
+    TimeZone_Selected = False
     selected_layout: str | None = None
-    InternetConnected = False
+    Layout_Selected = False
+    Password_Matches = False
+    Hostname_Selected = False
+    Username_Selected = False
+    Internet_Connected = False
     Selected_disk: str | None = None
     # Variables for Functions
     selected_ssid: str | None = None
     selected_interface: str | None = None
     entered_password: str | None = None
     selected_PartitionTable: str | None = None
+    selected_Username: str | None = None
+    selected_UserPassword: str | None = None
+    selected_UserPassword2: str | None = None
+    selected_RootPassword: str | None = None
+    selected_RootPassword2: str | None = None
     selected_Hostname: str | None = None
     selected_Software: str | None = None
     selected_Software_Array = []
@@ -96,6 +106,7 @@ class SeconndScreen(Screen):
                      TimeZone_input = Input(placeholder="Search Time Zone...", id="TimeZoneInput", classes="select1")           #
                      yield TimeZone_input                                                                                       #
                      yield AutoComplete(TimeZone_input, candidates=GetTimeZone())                                               #
+
             with TabPane("Device Selection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Label("[#5c6a72]On Which Devive do you want to Install Apple Puff?[/#5c6a72]",classes="DevSecText DevSec")
@@ -110,15 +121,19 @@ class SeconndScreen(Screen):
                             for disk in Disks:
                                 yield RadioButton(disk)
                         yield Select(options=["GPT","MBR"], id="PartitionTable", classes="select1")
+
             with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Input(placeholder="Enter Username", id="EnterUsername", classes="select1")
+                    yield Static(id="UserPassswordError")
                     yield Input(placeholder="Enter Password", id="EnterUserPassword", password=True, classes="select1")
                     yield Input(placeholder="Enter Password Again", id="EnterUserPassword2", password=True, classes="select1")
+                    yield Static(id="RootPassswordError")
                     yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True, classes="select1")
                     yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True, classes="select1")
                     yield Input(placeholder="Enter Hostname", id="EnterHostname", classes="select1")
                     yield Button("Check", id="Check", classes="button1")
+                    
             with TabPane("Network Connection", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     NetworkInterfaces = GetNetworkInterfaces()
@@ -131,18 +146,19 @@ class SeconndScreen(Screen):
             with TabPane("Software", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield SelectionList(
-                        ("Firefox", 0, True),
-                        ("Obsidian", 1),
-                        ("NeoVim", 2, True),
-                        ("LibreOffice", 3),
-                        ("Btop", 4, True),
-                        ("cmus", 5, True)
-
-                    )
+                        ("Firefox", "firefox", True),
+                        ("Obsidian", "obsidian"),
+                        ("NeoVim", "neovim", True),
+                        ("LibreOffice", "libreoffice-fresh"),
+                        ("Btop", "btop", True),
+                        ("cmus (Terminal Audio Player)", "cmus", True),
+                        ("tlp (Laptop Power Optimization)", "tlp"),
+                        id="select_software",)
+                    
             with TabPane("Summary", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Static(classes="SummaryLabel", id="SummaryLabel")
-                    yield Button("Start Install", classes="button1", id="StartInstallScreen")
+                    yield Button("Start Install", classes="button1", id="StartPostInstallScreen")
 
     @on(Input.Changed, "#TimeZoneInput")                            #AI
     def on_TimeZone_changed(self, event: Input.Changed) -> None:      #
@@ -150,6 +166,7 @@ class SeconndScreen(Screen):
         SummaryScreen = self.query_one("#SummaryLabel", Static)
         SummaryScreen.update(self.Summary)
         subprocess.run("timedateclt set-timezone " + event.value)
+        self.TimeZone_Selected = True
 
     @on(Input.Changed, "#KeyboardLayoutInput")                      #AI
     def on_layout_changed(self, event: Input.Changed) -> None:      #
@@ -157,7 +174,7 @@ class SeconndScreen(Screen):
         SummaryScreen = self.query_one("#SummaryLabel", Static)
         SummaryScreen.update(self.Summary)     
         subprocess.run("loadkeys " + event.value)
-
+        self.Layout_Selected = True
 
     @on(RadioButton.Changed, "#SelectDisk")
     def on_disk_changed(self, event: RadioButton.Changed) -> None:
@@ -169,9 +186,44 @@ class SeconndScreen(Screen):
     def on_Partition_Table_changed(self, event: Select.Changed) -> None:
         self.selected_PartitionTable = event.value
 
+    @on(Input.Changed, "#EnterUsername")
+    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+        self.selected_Username = event.value.lower()
+        self.Username_Selected = True
+
+    @on(Input.Changed, "#EnterUserPassword")
+    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+        self.selected_UserPassword = event.value.lower()
+
+    @on(Input.Changed, "#EnterUserPassword2")
+    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+        self.selected_UserPassword2 = event.value.lower()
+
+    @on(Input.Changed, "#EnterRootPassword")
+    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+        self.selected_RootPassword = event.value.lower()
+
+    @on(Input.Changed, "#EnterRootPassword2")
+    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+        self.selected_RootPassword2 = event.value.lower()
+
+    @on(Button.Pressed, "#Check")
+    def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
+        if self.selected_UserPassword != self.selected_UserPassword2:
+            CheckButton = self.query_one("#UserPassswordError", Static)
+            CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
+            CheckButton.styles.display = "block"
+        elif self.selected_RootPassword != self.selected_RootPassword2:
+            CheckButton = self.query_one("#RootPassswordError", Static)
+            CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
+            CheckButton.styles.display = "block"
+        else:
+            self.Password_Matches = True
+
     @on(Input.Changed, "#EnterHostname")
     def on_Hostname_Changed(self, event: Input.Changed) -> None:
         self.selected_Hostname = event.value
+        self.Hostname_Selected = True
 
     @on(Select.Changed, "#SelectNetworkInterface")
     def on_network_interface_selected(self, event: Select.Changed) -> None:
@@ -188,23 +240,28 @@ class SeconndScreen(Screen):
             return
         
         if "wl" in event.value:
-            self.selected_interface = event.value
+            try:
+                self.selected_interface = event.value
              
-            subprocess.run(
-            ["sudo", "iwctl", "station", event.value, "scan"]
-            )
-            output = subprocess.check_output(
-                ["sh", "-c", r"""iwctl station "$1" get-networks | sed 's/\x1b\[[0-9;]*m//g' | tail -n +5 | sed 's/^[ >]*//; s/ \{2,\}.*//' | grep -v '^$'""", "sh", event.value],  #AI
-                text=True,
-            )
-            new_options = [line for line in output.splitlines() if line.strip()] #AI
+                subprocess.run(
+                ["sudo", "iwctl", "station", event.value, "scan"]
+                )
+                output = subprocess.check_output(
+                    ["sh", "-c", r"""iwctl station "$1" get-networks | sed 's/\x1b\[[0-9;]*m//g' | tail -n +5 | sed 's/^[ >]*//; s/ \{2,\}.*//' | grep -v '^$'""", "sh", event.value],  #AI
+                    text=True,
+                )
+                new_options = [line for line in output.splitlines() if line.strip()] #AI
 
-            SSID_select.set_options((s, s) for s in new_options)  #AI
-            SSID_select.clear                                     #AI
-            SSID_select.styles.display = "block"                  #AI
-            Password_Input.clear   
-            Password_Input.styles.display = "block"
-            Connect_Button.styles.display = "block"
+                SSID_select.set_options((s, s) for s in new_options)  #AI
+                SSID_select.clear                                     #AI
+                SSID_select.styles.display = "block"                  #AI
+                Password_Input.clear   
+                Password_Input.styles.display = "block"
+                Connect_Button.styles.display = "block"
+            except subprocess.CalledProcessError as Error:
+                ConnectionStatus.update(Error)
+                ConnectionStatus.styles.color = "#F85552"
+                ConnectionStatus.styles.display = "block"
             
         elif "en" in event.value:
             ConnectionStatus.styles.display = "none"
@@ -213,17 +270,14 @@ class SeconndScreen(Screen):
             ["cat", command],
             text=True,
             ).strip()
-            
             if LANOUT == "up":
                 ConnectionStatus.update("Internet Connected")
                 ConnectionStatus.styles.color = "#8DA101"
-                InternetConnected = True
-                
+                self.Internet_Connected = True  
             else:
                 ConnectionStatus.update("Connection Failed:")
                 ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
-
         else:
             ConnectionStatus = self.query_one("#ConnectionStatus", Static)
             ConnectionStatus.update("Something Went Wrong, Please Select an WLAN or LAN interface")
@@ -262,11 +316,16 @@ class SeconndScreen(Screen):
                 ConnectionStatus.styles.color = "#F85552"
             ConnectionStatus.styles.display = "block"
 
-    @on(Button.Pressed, "#StartInstallScreen")
+    @on(SelectionList.SelectedChanged)
+    def update_selected_sofware(self, event: SelectionList.SelectedChanged) -> None:
+        self.selected_Software_Array = self.query_one("#select_software", SelectionList).selected
+
+    @on(Button.Pressed, "#StartPostInstallScreen")
     def on_button_pressed(self, event: Button.Pressed,):
-        if event.button.id == "StartInstallScreen":
+        if event.button.id == "StartPostInstallScreen":
             self.app.push_screen(PostInstallScreen())
 
+# Asks if you really want to install Apple Puff
 class PostInstallScreen(Screen):
     def compose(self):
         yield Logo()
@@ -274,7 +333,8 @@ class PostInstallScreen(Screen):
             yield Static("Are You Sure you want to Install Apple Puff Linux?")
             yield Static("[#F85552]Everything on the Selected Disk will be Ereased[/#F85552]")
             yield Button("Go Back", id="GoBack")
-            yield Button("Start Install", id="StartInstall")
+            yield Button("Start Install", id="StartInstallScreen")
+
     @on(Button.Pressed, "#StartInstallScreen")
     def on_button_pressed(self, event: Button.Pressed,):
         if event.button.id == "StartInstall":
@@ -297,7 +357,6 @@ def InstallResult_no_InstallEorror(ResultStr):
         return(True)
     else:
         return(False)
-
 
 def Partition_the_Drive(Disk, Partitiontable):
     DiskCommandGPT = "parted -s /dev/" + Disk + " mklabel gpt" + "mkpart primary FAT32 1MiB 1GiB mkpart primary swap 1GiB 3GiB mkpart primary ext4 3GiB 100% && mkfs.fat -F 32 /dev/" + Disk + "1 && sudo mkswap /dev/" + Disk + "2 && sudo mkfs.ext4 /dev/" + Disk + "3"
@@ -350,11 +409,9 @@ def run_in_chroot(mount_path, command):
     except subprocess.CalledProcessError as Error:
         Error = str(Error)
         return("Failed" + Error)
-
     
 # dwm installation
 # systemctl --user enable --now pipewire.service pipewire-pulse.service wireplumber.service
-
 
 def ContinueInstall(FuntionToUse):
     Result = FuntionToUse
@@ -392,8 +449,8 @@ def Create_User():
 def Install_Grub():
     print()
 
+#Installs ApplePuff
 class InstallScreen(Screen):
-
     def compose(self):
         yield Logo
         with Container:
@@ -401,6 +458,7 @@ class InstallScreen(Screen):
             yield Static(id="InstallStep")
             yield Static(id="InstallErrors")
             yield Button("Back", id="WIPBack")
+            yield LoadingIndicator()
             
     @on(Button.Pressed, "#StartInstallScreen")
     def on_button_pressed(self, event: Button.Pressed,):

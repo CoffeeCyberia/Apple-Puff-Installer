@@ -216,6 +216,15 @@ Input.-invalid:focus {
     width: 60;
 }
 
+#UserPassswordError{
+    display: none;
+    text-align: center;
+}
+
+#RootPassswordError{
+    display: none;
+    text-align: center;
+}
 
 AutoComplete {
     & AutoCompleteList {
