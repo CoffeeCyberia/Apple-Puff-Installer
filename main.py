@@ -66,15 +66,20 @@ class StartScreen(Screen):
 # The Screen you will se after the Start Screen. Its here for the Selections of the Options for the Installer
 class SeconndScreen(Screen):
     # Variables for Summary Screen
-    selected_TimeZone: str | None = None
-    TimeZone_Selected = False
-    selected_layout: str | None = None
-    Layout_Selected = False
-    Password_Matches = False
-    Hostname_Selected = False
-    Username_Selected = False
-    Internet_Connected = False
+    selected_TimeZone = "[#F85552] Please Select Timezone [/#F85552]"
+    
+    selected_layout = "[#F85552] Please Select Keyboard Layout [/#F85552]"
+    
+    Needed_To_Start ={
+        "Layout_Selected": False,
+        "TimeZone_Selected": False,
+        "Password_Matches": False,
+        "Hostname_Selected": False,
+        "Username_Selected": False,
+        "Internet_Connected": False
+    }
     Selected_disk: str | None = None
+    SummaryScreen = "Selected Time Zone: ", selected_TimeZone, "\n" "Selected Keyboard Layout: ", selected_layout, "\n"  "Selected Disk: ", Selected_disk, "\n"
     # Variables for Functions
     selected_ssid: str | None = None
     selected_interface: str | None = None
@@ -88,7 +93,7 @@ class SeconndScreen(Screen):
     selected_Hostname: str | None = None
     selected_Software: str | None = None
     selected_Software_Array = []
-    Summary = "Timezone: ",selected_TimeZone , "\n", "Selected Keyboard Layout: ", selected_layout, "\n", "Slected Disk to install Apple Puff on: ", Selected_disk, "\n", "Internet Connected: ",InternetConnected, "\n"
+    Summary = "Timezone: ",selected_TimeZone , "\n", "Selected Keyboard Layout: ", selected_layout, "\n", "Slected Disk to install Apple Puff on: ", Selected_disk, "\n", "Internet Connected: ",Needed_To_Start["Internet_Connected"], "\n"
     BINDINGS = [                                                #AI Helped me with the Bindings (Noted how it Works in the Obsidian Vault)
         Binding("left", "prev_tab", "Previous step"),           #
         Binding("right", "next_tab", "Next step"),              #
@@ -166,7 +171,7 @@ class SeconndScreen(Screen):
         SummaryScreen = self.query_one("#SummaryLabel", Static)
         SummaryScreen.update(self.Summary)
         subprocess.run("timedateclt set-timezone " + event.value)
-        self.TimeZone_Selected = True
+        self.Needed_To_Start["TimeZone_Selected"] = True
 
     @on(Input.Changed, "#KeyboardLayoutInput")                      #AI
     def on_layout_changed(self, event: Input.Changed) -> None:      #
@@ -174,7 +179,7 @@ class SeconndScreen(Screen):
         SummaryScreen = self.query_one("#SummaryLabel", Static)
         SummaryScreen.update(self.Summary)     
         subprocess.run("loadkeys " + event.value)
-        self.Layout_Selected = True
+        self.Needed_To_Start["Layout_Selected"] = True
 
     @on(RadioButton.Changed, "#SelectDisk")
     def on_disk_changed(self, event: RadioButton.Changed) -> None:
@@ -189,7 +194,7 @@ class SeconndScreen(Screen):
     @on(Input.Changed, "#EnterUsername")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
         self.selected_Username = event.value.lower()
-        self.Username_Selected = True
+        self.Needed_To_Start["Username_Selected"] = True
 
     @on(Input.Changed, "#EnterUserPassword")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
@@ -218,12 +223,12 @@ class SeconndScreen(Screen):
             CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
             CheckButton.styles.display = "block"
         else:
-            self.Password_Matches = True
+            self.Needed_To_Start["Password_Matches"] = True
 
     @on(Input.Changed, "#EnterHostname")
     def on_Hostname_Changed(self, event: Input.Changed) -> None:
         self.selected_Hostname = event.value
-        self.Hostname_Selected = True
+        self.Needed_To_Start["Hostname_Selected"] = True
 
     @on(Select.Changed, "#SelectNetworkInterface")
     def on_network_interface_selected(self, event: Select.Changed) -> None:
@@ -258,6 +263,7 @@ class SeconndScreen(Screen):
                 Password_Input.clear   
                 Password_Input.styles.display = "block"
                 Connect_Button.styles.display = "block"
+                self.Needed_To_Start["Internet_Connected"] = True
             except subprocess.CalledProcessError as Error:
                 ConnectionStatus.update(Error)
                 ConnectionStatus.styles.color = "#F85552"
@@ -273,7 +279,7 @@ class SeconndScreen(Screen):
             if LANOUT == "up":
                 ConnectionStatus.update("Internet Connected")
                 ConnectionStatus.styles.color = "#8DA101"
-                self.Internet_Connected = True  
+                self.Needed_To_Start["Internet_Connected"] = True
             else:
                 ConnectionStatus.update("Connection Failed:")
                 ConnectionStatus.styles.color = "#F85552"
@@ -323,7 +329,33 @@ class SeconndScreen(Screen):
     @on(Button.Pressed, "#StartPostInstallScreen")
     def on_button_pressed(self, event: Button.Pressed,):
         if event.button.id == "StartPostInstallScreen":
-            self.app.push_screen(PostInstallScreen())
+            i = 0
+            for criterion, (boolien, NeedToDo )in SeconndScreen().Needed_To_Start.items():
+                if boolien is False:
+                    NeededInfosScreen().NeededInfos = NeededInfosScreen().NeededInfos + criterion + "\n"
+                else:
+                    i = i + 1
+            if i < 6:
+                self.app.push_screen(NeededInfosScreen())
+            else:
+                self.app.push_screen(PostInstallScreen())
+                
+
+
+
+class NeededInfosScreen(Screen):
+    NeededInfos = ""
+    def compose(self):
+        yield Logo()
+        with Container(id="button2area"):
+            yield Static(id="NeededInfos")
+            yield Button("Go Back", id="GoBack")
+
+    @on(Button.Pressed, "#GoBack")
+    def on_GoBack_Button_Pressed(self, event: Button.Pressed):
+        self.app.push_screen(SeconndScreen())
+        
+    
 
 # Asks if you really want to install Apple Puff
 class PostInstallScreen(Screen):
