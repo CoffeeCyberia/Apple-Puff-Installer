@@ -332,7 +332,7 @@ class SeconndScreen(Screen):
             i = 0
             for criterion, (boolien, NeedToDo )in SeconndScreen().Needed_To_Start.items():
                 if boolien is False:
-                    NeededInfosScreen().NeededInfos = NeededInfosScreen().NeededInfos + criterion + "\n"
+                    NeededInfosScreen().NeededInfos = NeededInfosScreen().NeededInfos + criterion + ": " + boolien +"\n"
                 else:
                     i = i + 1
             if i < 6:
@@ -472,8 +472,13 @@ def Set_Locale(TimeZone, Locale, Keymap, Hostname):
         return("Failed to Set Hostname")
     return("Set Locale Complete")
 
-def Set_Root_PW():
-    print()
+def Set_Root_PW(Password):
+    try:
+        subprocess.run("echo " + '"' + "root:" + Password + '"' + " | " + "Arch-chroot -S /mnt chpasswd", shell=True)
+    except subprocess.CalledProcessError as Error:
+        Error = str(Error)
+        return("Installation Failed: ", Error)
+
 
 def Create_User():
     print()
@@ -490,6 +495,7 @@ class InstallScreen(Screen):
             yield Static(id="InstallStep")
             yield Static(id="InstallErrors")
             yield Button("Back", id="WIPBack")
+            yield Button("Start Install", id="StartInstall")
             yield LoadingIndicator()
             
     @on(Button.Pressed, "#StartInstallScreen")
@@ -517,6 +523,10 @@ class InstallScreen(Screen):
             InstallStep.update("Set Locale...")
             if ContinueInstall(Set_Locale(SeconndScreen().selected_TimeZone, "en_US.UTF-8", SeconndScreen().selected_layout, SeconndScreen().selected_Hostname)) == False:
                 return
+            InstallStep.update("Set Root Password...")
+            if ContinueInstall(Set_Root_PW(SeconndScreen().selected_RootPassword)) == False:
+                return
+            
 
 def on_mount(self) -> None:                                             #AI
     self.query_one(TabbedContent).query_one(Tabs).can_focus = False     #AI
