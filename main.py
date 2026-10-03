@@ -73,7 +73,8 @@ class SeconndScreen(Screen):
     Needed_To_Start ={
         "Layout_Selected": False,
         "TimeZone_Selected": False,
-        "Password_Matches": False,
+        "User_Password_Matches": False,
+        "Root_Password_Matches": False,
         "Hostname_Selected": False,
         "Username_Selected": False,
         "Internet_Connected": False
@@ -125,7 +126,7 @@ class SeconndScreen(Screen):
                                 yield RadioButton(disk)
                         yield Select.from_values(["GPT", "MBR"], value="GPT", allow_blank=False, id="PartitionTable", classes="select1")
 
-            with TabPane("User Creation", classes="InstallationTabs"):
+            with TabPane("Machine Stuff", classes="InstallationTabs"):
                 with Container(id="button2area"):        
                     yield Input(placeholder="Enter Hostname", id="EnterHostname", classes="select1")
                     yield Static(id="RootPassswordError")
@@ -206,43 +207,47 @@ class SeconndScreen(Screen):
         self.selected_PartitionTable = event.value
 
     @on(Input.Changed, "#EnterUsername")
-    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+    def on_username_changed(self, event: Input.Changed) -> None:
         self.selected_Username = event.value.lower()
         self.Needed_To_Start["Username_Selected"] = bool(event.value.strip())
 
     @on(Input.Changed, "#EnterUserPassword")
-    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+    def on_user_password_changed(self, event: Input.Changed) -> None:
         self.selected_UserPassword = event.value
 
     @on(Input.Changed, "#EnterUserPassword2")
-    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+    def on_user_password_changed2(self, event: Input.Changed) -> None:
         self.selected_UserPassword2 = event.value
 
     @on(Input.Changed, "#EnterRootPassword")
-    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+    def on_root_password_changed(self, event: Input.Changed) -> None:
         self.selected_RootPassword = event.value
 
     @on(Input.Changed, "#EnterRootPassword2")
-    def on_Enterusername_changed(self, event: Input.Changed) -> None:
+    def on_root_password_changed2(self, event: Input.Changed) -> None:
         self.selected_RootPassword2 = event.value
     
     @on(Button.Pressed, "#CheckUser")
-    def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
-        if not self.selected_UserPassword or self.selected_UserPassword != self.selected_UserPassword2: #AI
-            CheckButton = self.query_one("#UserPassswordError", Static)
-            CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
-            CheckButton.styles.display = "block"
+    def on_Check_User_Pressed(self, event:Button.Pressed) -> None:
+        error = self.query_one("#UserPassswordError", Static)
+        if not self.selected_UserPassword or self.selected_UserPassword != self.selected_UserPassword2: #AI          
+            error.update("[#F85552]Passwords do not Match[/#F85552]")
+            error.styles.display = "block"
+            self.Needed_To_Start["User_Password_Matches"] = False
         else:
-            self.Needed_To_Start["Password_Matches"] = True
+            error.styles.display = "none"
+            self.Needed_To_Start["User_Password_Matches"] = True
 
     @on(Button.Pressed, "#CheckRoot")
-    def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
-        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:
-            CheckButton = self.query_one("#RootPassswordError", Static)
-            CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
-            CheckButton.styles.display = "block"
+    def on_Check_Root_Pressed(self, event:Button.Pressed) -> None:
+        error = self.query_one("#RootPassswordError", Static)
+        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:          
+            error.update("[#F85552]Passwords do not Match[/#F85552]")
+            error.styles.display = "block"
+            self.Needed_To_Start["Root_Password_Matches"] = False
         else:
-            self.Needed_To_Start["Password_Matches"] = True
+            error.styles.display = "none"
+            self.Needed_To_Start["Root_Password_Matches"] = True
 
     @on(Input.Changed, "#EnterHostname")
     def on_Hostname_Changed(self, event: Input.Changed) -> None:
@@ -378,7 +383,7 @@ class NeededInfosScreen(Screen):
     def compose(self):
         yield Logo()
         with Container(id="button2area"):
-            lines = "\n".join(
+            lines = "\n".join( #AI
                 f"[#F85552]{name.replace('_', ' ')}[/#F85552]" for name in self.missing
             )
             yield Static("Still missing:\n" + lines, id="NeededInfos")
