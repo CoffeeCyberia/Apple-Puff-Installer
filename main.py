@@ -125,7 +125,7 @@ class SeconndScreen(Screen):
                         with RadioSet(classes="RadioSetDisk", id="SelectDisk"):
                             for disk in Disks:
                                 yield RadioButton(disk)
-                        yield Select(options=["GPT","MBR"], id="PartitionTable", classes="select1")
+                        yield Select.from_values(["GPT", "MBR"], value="GPT", allow_blank=False, id="PartitionTable", classes="select1")
 
             with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
