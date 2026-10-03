@@ -204,7 +204,7 @@ class SeconndScreen(Screen):
     @on(Input.Changed, "#EnterUsername")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
         self.selected_Username = event.value.lower()
-        self.Needed_To_Start["Username_Selected"] = True
+        self.Needed_To_Start["Username_Selected"] = bool(event.value.strip())
 
     @on(Input.Changed, "#EnterUserPassword")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
@@ -212,22 +212,23 @@ class SeconndScreen(Screen):
 
     @on(Input.Changed, "#EnterUserPassword2")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
-        self.selected_UserPassword2 = str(event.value)
+        self.selected_UserPassword2 = event.value
 
     @on(Input.Changed, "#EnterRootPassword")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
-        self.selected_RootPassword = str(event.value)
+        self.selected_RootPassword = event.value
 
     @on(Input.Changed, "#EnterRootPassword2")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
         self.selected_RootPassword2 = event.value
+    
     @on(Button.Pressed, "#Check")
     def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
-        if self.selected_UserPassword != self.selected_UserPassword2:
+        if not self.selected_UserPassword or self.selected_UserPassword != self.selected_UserPassword2: #AI
             CheckButton = self.query_one("#UserPassswordError", Static)
             CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
             CheckButton.styles.display = "block"
-        elif self.selected_RootPassword != self.selected_RootPassword2:
+        elif not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:
             CheckButton = self.query_one("#RootPassswordError", Static)
             CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
             CheckButton.styles.display = "block"
