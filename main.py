@@ -340,9 +340,9 @@ class SeconndScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed,):
         if event.button.id == "StartPostInstallScreen":
             i = 0
-            for criterion, (boolien, NeedToDo )in SeconndScreen().Needed_To_Start.items():
-                if boolien is False:
-                    NeededInfosScreen().NeededInfos = NeededInfosScreen().NeededInfos + criterion + ": " + boolien +"\n"
+            for criterion, (TorF, NeedToDo)in SeconndScreen().Needed_To_Start.items():
+                if TorF is False:
+                    NeededInfosScreen().NeededInfos = NeededInfosScreen().NeededInfos + criterion + ": " + TorF +"\n"
                 else:
                     i = i + 1
             if i < 6:
