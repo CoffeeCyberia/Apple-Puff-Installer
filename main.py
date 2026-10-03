@@ -126,16 +126,20 @@ class SeconndScreen(Screen):
                         yield Select.from_values(["GPT", "MBR"], value="GPT", allow_blank=False, id="PartitionTable", classes="select1")
 
             with TabPane("User Creation", classes="InstallationTabs"):
+                with Container(id="button2area"):        
+                    yield Input(placeholder="Enter Hostname", id="EnterHostname", classes="select1")
+                    yield Static(id="RootPassswordError")
+                    yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True, classes="select1")
+                    yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True, classes="select1")
+                    yield Button("Check", id="CheckUser", classes="button1")
+
+            with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
                     yield Input(placeholder="Enter Username", id="EnterUsername", classes="select1")
                     yield Static(id="UserPassswordError")
                     yield Input(placeholder="Enter Password", id="EnterUserPassword", password=True, classes="select1")
                     yield Input(placeholder="Enter Password Again", id="EnterUserPassword2", password=True, classes="select1")
-                    yield Static(id="RootPassswordError")
-                    yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True, classes="select1")
-                    yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True, classes="select1")
-                    yield Input(placeholder="Enter Hostname", id="EnterHostname", classes="select1")
-                    yield Button("Check", id="Check", classes="button1")
+                    yield Button("Check", id="CheckRoot", classes="button1")
                     
             with TabPane("Network Connection", classes="InstallationTabs"):
                 with Container(id="button2area"):
@@ -222,13 +226,18 @@ class SeconndScreen(Screen):
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
         self.selected_RootPassword2 = event.value
     
-    @on(Button.Pressed, "#Check")
+    @on(Button.Pressed, "#CheckUser")
     def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
         if not self.selected_UserPassword or self.selected_UserPassword != self.selected_UserPassword2: #AI
             CheckButton = self.query_one("#UserPassswordError", Static)
             CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
             CheckButton.styles.display = "block"
-        elif not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:
+        else:
+            self.Needed_To_Start["Password_Matches"] = True
+
+    @on(Button.Pressed, "#CheckRoot")
+    def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
+        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:
             CheckButton = self.query_one("#RootPassswordError", Static)
             CheckButton.update("[#F85552]Passwords do not Match[/#F85552]")
             CheckButton.styles.display = "block"
