@@ -79,7 +79,6 @@ class SeconndScreen(Screen):
         "Internet_Connected": False
     }
     Selected_disk: str | None = None
-    SummaryScreen = "Selected Time Zone: ", selected_TimeZone, "\n" "Selected Keyboard Layout: ", selected_layout, "\n"  "Selected Disk: ", Selected_disk, "\n"
     # Variables for Functions
     selected_ssid: str | None = None
     selected_interface: str | None = None
@@ -93,7 +92,6 @@ class SeconndScreen(Screen):
     selected_Hostname: str | None = None
     selected_Software: str | None = None
     selected_Software_Array = []
-    Summary = "Timezone: ",selected_TimeZone , "\n", "Selected Keyboard Layout: ", selected_layout, "\n", "Slected Disk to install Apple Puff on: ", Selected_disk, "\n", "Internet Connected: ",Needed_To_Start["Internet_Connected"], "\n"
     BINDINGS = [                                                #AI Helped me with the Bindings (Noted how it Works in the Obsidian Vault)
         Binding("left", "prev_tab", "Previous step"),           #
         Binding("right", "next_tab", "Next step"),              #
@@ -165,12 +163,22 @@ class SeconndScreen(Screen):
                     yield Static(classes="SummaryLabel", id="SummaryLabel")
                     yield Button("Start Install", classes="button1", id="StartPostInstallScreen")
 
+    @property   #AI
+    def Summary(self) -> str:
+        not_set = lambda text: f"[#F85552] Please Select {text} [/#F85552]"
+        return (
+            f"Timezone: {self.selected_TimeZone}\n"
+            f"Selected Keyboard Layout: {self.selected_layout}\n"
+            f"Selected Disk to install Apple Puff on: {self.Selected_disk or not_set('Disk')}\n"
+            f"Internet Connected: {self.Needed_To_Start['Internet_Connected']}\n"
+        )
+
     @on(Input.Changed, "#TimeZoneInput")                            #AI
     def on_TimeZone_changed(self, event: Input.Changed) -> None:      #
         self.selected_TimeZone = event.value
         SummaryScreen = self.query_one("#SummaryLabel", Static)
         SummaryScreen.update(self.Summary)
-        subprocess.run("timedateclt set-timezone " + event.value)
+        subprocess.run(["timedatectl", "set-timezone", event.value])
         self.Needed_To_Start["TimeZone_Selected"] = True
 
     @on(Input.Changed, "#KeyboardLayoutInput")                      #AI
@@ -178,14 +186,16 @@ class SeconndScreen(Screen):
         self.selected_layout = event.value                          #
         SummaryScreen = self.query_one("#SummaryLabel", Static)
         SummaryScreen.update(self.Summary)     
-        subprocess.run("loadkeys " + event.value)
+        subprocess.run(["loadkeys", event.value])
         self.Needed_To_Start["Layout_Selected"] = True
 
     @on(RadioButton.Changed, "#SelectDisk")
     def on_disk_changed(self, event: RadioButton.Changed) -> None:
-        self.Selected_disk = event.value
-        SummaryScreen = self.query_one("#SummaryLabel", Static)
-        SummaryScreen.update(self.Summary) 
+        #self.Selected_disk = event.value
+        self.Selected_disk = str(event.pressed.label)
+        self.query_one("#SummaryLabel", Static).update(self.Summary)
+        #SummaryScreen = self.query_one("#SummaryLabel", Static)
+        #SummaryScreen.update(self.Summary) 
 
     @on(Select.Changed, "#PartitionTable")
     def on_Partition_Table_changed(self, event: Select.Changed) -> None:
@@ -258,14 +268,14 @@ class SeconndScreen(Screen):
                 new_options = [line for line in output.splitlines() if line.strip()] #AI
 
                 SSID_select.set_options((s, s) for s in new_options)  #AI
-                SSID_select.clear                                     #AI
+                SSID_select.clear()                                     #AI
                 SSID_select.styles.display = "block"                  #AI
-                Password_Input.clear   
+                Password_Input.clear()   
                 Password_Input.styles.display = "block"
                 Connect_Button.styles.display = "block"
                 self.Needed_To_Start["Internet_Connected"] = True
             except subprocess.CalledProcessError as Error:
-                ConnectionStatus.update(Error)
+                ConnectionStatus.update(Error())
                 ConnectionStatus.styles.color = "#F85552"
                 ConnectionStatus.styles.display = "block"
             
