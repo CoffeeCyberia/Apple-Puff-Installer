@@ -132,7 +132,7 @@ class SeconndScreen(Screen):
                     yield Static(id="RootPassswordError")
                     yield Input(placeholder="Enter Root Password", id="EnterRootPassword", password=True, classes="select1")
                     yield Input(placeholder="Enter Toor Password Again", id="EnterRootPassword2", password=True, classes="select1")
-                    yield Button("Check", id="CheckUser", classes="button1")
+                    yield Button("Check", id="CheckRoot", classes="button1")
 
             with TabPane("User Creation", classes="InstallationTabs"):
                 with Container(id="button2area"):
@@ -140,7 +140,7 @@ class SeconndScreen(Screen):
                     yield Static(id="UserPassswordError")
                     yield Input(placeholder="Enter Password", id="EnterUserPassword", password=True, classes="select1")
                     yield Input(placeholder="Enter Password Again", id="EnterUserPassword2", password=True, classes="select1")
-                    yield Button("Check", id="CheckRoot", classes="button1")
+                    yield Button("Check", id="CheckUser", classes="button1")
                     
             with TabPane("Network Connection", classes="InstallationTabs"):
                 with Container(id="button2area"):
