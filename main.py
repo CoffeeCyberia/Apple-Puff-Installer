@@ -208,20 +208,19 @@ class SeconndScreen(Screen):
 
     @on(Input.Changed, "#EnterUserPassword")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
-        self.selected_UserPassword = event.value.lower()
+        self.selected_UserPassword = event.value
 
     @on(Input.Changed, "#EnterUserPassword2")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
-        self.selected_UserPassword2 = event.value.lower()
+        self.selected_UserPassword2 = str(event.value)
 
     @on(Input.Changed, "#EnterRootPassword")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
-        self.selected_RootPassword = event.value.lower()
+        self.selected_RootPassword = str(event.value)
 
     @on(Input.Changed, "#EnterRootPassword2")
     def on_Enterusername_changed(self, event: Input.Changed) -> None:
-        self.selected_RootPassword2 = event.value.lower()
-
+        self.selected_RootPassword2 = event.value
     @on(Button.Pressed, "#Check")
     def on_Check_Button_Pressed(self, event:Button.Pressed) -> None:
         if self.selected_UserPassword != self.selected_UserPassword2:
@@ -337,6 +336,14 @@ class SeconndScreen(Screen):
         self.selected_Software_Array = self.query_one("#select_software", SelectionList).selected
 
     @on(Button.Pressed, "#StartPostInstallScreen")
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        missing = [name for name, done in self.Needed_To_Start.items() if not done]
+        if missing:
+            self.app.push_screen(NeededInfosScreen(missing))
+        else:
+            self.app.push_screen(PostInstallScreen())
+
+    test2 = '''
     def on_button_pressed(self, event: Button.Pressed,):
         if event.button.id == "StartPostInstallScreen":
             i = 0
@@ -350,10 +357,28 @@ class SeconndScreen(Screen):
             else:
                 self.app.push_screen(PostInstallScreen())
                 
-
+    '''
 
 
 class NeededInfosScreen(Screen):
+    def __init__(self, missing: list[str]) -> None:
+        super().__init__()
+        self.missing = missing
+
+    def compose(self):
+        yield Logo()
+        with Container(id="button2area"):
+            lines = "\n".join(
+                f"[#F85552]{name.replace('_', ' ')}[/#F85552]" for name in self.missing
+            )
+            yield Static("Still missing:\n" + lines, id="NeededInfos")
+            yield Button("Go Back", id="GoBack")
+
+    @on(Button.Pressed, "#GoBack")
+    def on_GoBack_Button_Pressed(self, event: Button.Pressed) -> None:
+        self.app.pop_screen()
+    
+    test3 = '''
     NeededInfos = ""
     def compose(self):
         yield Logo()
@@ -364,7 +389,7 @@ class NeededInfosScreen(Screen):
     @on(Button.Pressed, "#GoBack")
     def on_GoBack_Button_Pressed(self, event: Button.Pressed):
         self.app.push_screen(SeconndScreen())
-        
+        '''
     
 
 # Asks if you really want to install Apple Puff
