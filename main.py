@@ -197,7 +197,7 @@ class SeconndScreen(Screen):
     @on(RadioButton.Changed, "#SelectDisk")
     def on_disk_changed(self, event: RadioButton.Changed) -> None:
         #self.Selected_disk = event.value
-        self.Selected_disk = str(event.pressed.label)
+        self.Selected_disk = str(event.pressed.label).split()[0]
         self.query_one("#SummaryLabel", Static).update(self.Summary)
         #SummaryScreen = self.query_one("#SummaryLabel", Static)
         #SummaryScreen.update(self.Summary) 
@@ -273,7 +273,7 @@ class SeconndScreen(Screen):
                 self.selected_interface = event.value
              
                 subprocess.run(
-                ["sudo", "iwctl", "station", event.value, "scan"]
+                ["iwctl", "station", event.value, "scan"]
                 )
                 output = subprocess.check_output(
                     ["sh", "-c", r"""iwctl station "$1" get-networks | sed 's/\x1b\[[0-9;]*m//g' | tail -n +5 | sed 's/^[ >]*//; s/ \{2,\}.*//' | grep -v '^$'""", "sh", event.value],  #AI
@@ -335,7 +335,7 @@ class SeconndScreen(Screen):
             ssid_quoted = '"' + ssid + '"'
             try:              #Ai told about try and exept
                 subprocess.run(
-                ["sudo", "iwctl", "--passphrase", password_quoted, "station", interface, "connect", ssid],
+                ["iwctl", "--passphrase", password_quoted, "station", interface, "connect", ssid],
                 check=True
                 )
                 ConnectionStatus.update("Connection Established")
@@ -418,11 +418,12 @@ class PostInstallScreen(Screen):
             yield Button("Start Install", id="StartInstallScreen")
 
     @on(Button.Pressed, "#StartInstallScreen")
-    def on_button_pressed(self, event: Button.Pressed,):
-        if event.button.id == "StartInstall":
-            self.app.push_screen(InstallScreen())
-        if event.button.id == "GoBack":
-            self.app.push_screen(SeconndScreen())
+    def on_start_install(self, event: Button.Pressed) -> None:
+        self.app.push_screen(InstallScreen())
+
+    @on(Button.Pressed, "#GoBack")
+    def on_go_back(self, event: Button.Pressed) -> None:
+        self.app.pop_screen()
 
 def InstallResult(ResultStr):
     InstallErrors = InstallScreen().query_one("#InstallErrors", Static)
@@ -441,13 +442,13 @@ def InstallResult_no_InstallEorror(ResultStr):
         return(False)
 
 def Partition_the_Drive(Disk, Partitiontable):
-    DiskCommandGPT = "parted -s /dev/" + Disk + " mklabel gpt" + "mkpart primary FAT32 1MiB 1GiB mkpart primary swap 1GiB 3GiB mkpart primary ext4 3GiB 100% && mkfs.fat -F 32 /dev/" + Disk + "1 && sudo mkswap /dev/" + Disk + "2 && sudo mkfs.ext4 /dev/" + Disk + "3"
-    DiskCommandMBR = "parted -s /dev/" + Disk + " mklabel mbr" + "mkpart primary swap 1MiB 2GiB mkpart primary ext4 2GiB 100% && sudo mkswap /dev/" + Disk + "1 && sudo mkfs.ext4 /dev/" + Disk + "2"
+    DiskCommandGPT = "parted -s /dev/" + Disk + " mklabel gpt" + "mkpart primary FAT32 1MiB 1GiB mkpart primary swap 1GiB 3GiB mkpart primary ext4 3GiB 100% && mkfs.fat -F 32 /dev/" + Disk + "1 && mkswap /dev/" + Disk + "2 && mkfs.ext4 /dev/" + Disk + "3"
+    DiskCommandMBR = "parted -s /dev/" + Disk + " mklabel msdos" + "mkpart primary swap 1MiB 2GiB mkpart primary ext4 2GiB 100% && mkswap /dev/" + Disk + "1 && mkfs.ext4 /dev/" + Disk + "2"
     if Partitiontable == "MBR":
-        subprocess.run(DiskCommandMBR, shell=True)
+        subprocess.run(DiskCommandMBR, shell=True, check=True)
         return("Partitioning Complete")
     elif Partitiontable == "GPT":
-        subprocess.run(DiskCommandGPT, shell=True)
+        subprocess.run(DiskCommandGPT, shell=True, check=True)
         return("Partitioning Complete")
     else:
         return("Partitioning Failed")
@@ -456,10 +457,10 @@ def Mount_the_Partitions(Disk, Partitiontable):
     MountCommandMBR = "mount /dev/" + Disk + "2 /mnt && swapon /dev/" + Disk + "1"
     MountCommandGPT = "mount /dev/" + Disk + "3 /mnt && mount --mkdir /dev/" + Disk + "2 /mnt/boot && swapon /dev/" + Disk + "1"
     if Partitiontable == "MBR":
-        subprocess.run(MountCommandMBR)
+        subprocess.run(MountCommandMBR, shell=True)
         return("Mounting Complete")
     elif Partitiontable == "GPT":
-        subprocess.run(MountCommandGPT)
+        subprocess.run(MountCommandGPT, shell=True)
         return("Mounting Complete")
     else:
         return("Mounting Failed")
@@ -539,8 +540,8 @@ def Install_Grub():
 #Installs ApplePuff
 class InstallScreen(Screen):
     def compose(self):
-        yield Logo
-        with Container:
+        yield Logo()
+        with Container():
             yield Static("WIP")
             yield Static(id="InstallStep")
             yield Static(id="InstallErrors")
@@ -548,14 +549,14 @@ class InstallScreen(Screen):
             yield Button("Start Install", id="StartInstall")
             yield LoadingIndicator()
             
-    @on(Button.Pressed, "#StartInstallScreen")
+    @on(Button.Pressed, "#StartInstall")
     def on_button_pressed(self, event: Button.Pressed,):
         InstallErrors = self.query_one("#InstallErrors", Static)
         InstallErrors.styles.display = "block"
         InstallErrors.styles.color = "#5c6a72"
-        InstallStep = self.query_one("#InstallErrors", Static)
+        InstallStep = self.query_one("#InstallStep", Static)
         
-        if event.button.id == "WIPBACK":
+        if event.button.id == "WIPBack":
             self.app.push_screen(PostInstallScreen())
         if event.button.id == "StartInstall":
             InstallStep.update("Partitioning the Drive...")
