@@ -197,8 +197,8 @@ class SeconndScreen(Screen):
     @on(RadioButton.Changed, "#SelectDisk")
     def on_disk_changed(self, event: RadioButton.Changed) -> None:
         #self.Selected_disk = event.value
-        self.Selected_disk = str(event.pressed.label).split()[0]
-        self.query_one("#SummaryLabel", Static).update(self.Summary)
+        self.Selected_disk = str(event.pressed.label).split()[0]        #AI
+        self.query_one("#SummaryLabel", Static).update(self.Summary)    #AI
         #SummaryScreen = self.query_one("#SummaryLabel", Static)
         #SummaryScreen.update(self.Summary) 
 
@@ -209,7 +209,7 @@ class SeconndScreen(Screen):
     @on(Input.Changed, "#EnterUsername")
     def on_username_changed(self, event: Input.Changed) -> None:
         self.selected_Username = event.value.lower()
-        self.Needed_To_Start["Username_Selected"] = bool(event.value.strip())
+        self.Needed_To_Start["Username_Selected"] = bool(event.value.strip()) #AI
 
     @on(Input.Changed, "#EnterUserPassword")
     def on_user_password_changed(self, event: Input.Changed) -> None:
@@ -241,7 +241,7 @@ class SeconndScreen(Screen):
     @on(Button.Pressed, "#CheckRoot")
     def on_Check_Root_Pressed(self, event:Button.Pressed) -> None:
         error = self.query_one("#RootPassswordError", Static)
-        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:          
+        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:     #AI     
             error.update("[#F85552]Passwords do not Match[/#F85552]")
             error.styles.display = "block"
             self.Needed_To_Start["Root_Password_Matches"] = False
@@ -294,7 +294,7 @@ class SeconndScreen(Screen):
                 ConnectionStatus.styles.display = "block"
             
         elif "en" in event.value:
-            ConnectionStatus.styles.display = "none"
+            ConnectionStatus.styles.display = "none"        #AI
             command = "/sys/class/net/" + event.value + "/operstate"
             LANOUT = subprocess.check_output(
             ["cat", command],
@@ -352,28 +352,11 @@ class SeconndScreen(Screen):
 
     @on(Button.Pressed, "#StartPostInstallScreen")
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        missing = [name for name, done in self.Needed_To_Start.items() if not done]
+        missing = [name for name, done in self.Needed_To_Start.items() if not done] #AI
         if missing:
-            self.app.push_screen(NeededInfosScreen(missing))
+            self.app.push_screen(NeededInfosScreen(missing))    #AI
         else:
-            self.app.push_screen(PostInstallScreen())
-
-    test2 = '''
-    def on_button_pressed(self, event: Button.Pressed,):
-        if event.button.id == "StartPostInstallScreen":
-            i = 0
-            for criterion, (TorF, NeedToDo)in SeconndScreen().Needed_To_Start.items():
-                if TorF is False:
-                    NeededInfosScreen().NeededInfos = NeededInfosScreen().NeededInfos + criterion + ": " + TorF +"\n"
-                else:
-                    i = i + 1
-            if i < 6:
-                self.app.push_screen(NeededInfosScreen())
-            else:
-                self.app.push_screen(PostInstallScreen())
-                
-    '''
-
+            self.app.push_screen(PostInstallScreen())   #AI
 
 class NeededInfosScreen(Screen):
     def __init__(self, missing: list[str]) -> None:
@@ -384,28 +367,14 @@ class NeededInfosScreen(Screen):
         yield Logo()
         with Container(id="button2area"):
             lines = "\n".join( #AI
-                f"[#F85552]{name.replace('_', ' ')}[/#F85552]" for name in self.missing
+                f"[#F85552]{name.replace('_', ' ')}[/#F85552]" for name in self.missing #AI
             )
             yield Static("Still missing:\n" + lines, id="NeededInfos")
             yield Button("Go Back", id="GoBack")
 
     @on(Button.Pressed, "#GoBack")
     def on_GoBack_Button_Pressed(self, event: Button.Pressed) -> None:
-        self.app.pop_screen()
-    
-    test3 = '''
-    NeededInfos = ""
-    def compose(self):
-        yield Logo()
-        with Container(id="button2area"):
-            yield Static(id="NeededInfos")
-            yield Button("Go Back", id="GoBack")
-
-    @on(Button.Pressed, "#GoBack")
-    def on_GoBack_Button_Pressed(self, event: Button.Pressed):
-        self.app.push_screen(SeconndScreen())
-        '''
-    
+        self.app.pop_screen()   #AI 
 
 # Asks if you really want to install Apple Puff
 class PostInstallScreen(Screen):
