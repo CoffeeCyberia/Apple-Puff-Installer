@@ -1,4 +1,4 @@
-# Apple-Puff Installer
+# Apple-Puff Installer (Discontinued for Now, will Focus on the Rice for now. The Documentation will be continued for the Lines i didn't documented yet.) 
 
 DONT USE IT LOCALY IT CAN CHANGE STUFF ON YOUR LINUX OS
 
