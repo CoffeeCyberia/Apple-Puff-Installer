@@ -230,7 +230,7 @@ class SeconndScreen(Screen):
     @on(Button.Pressed, "#CheckUser")
     def on_Check_User_Pressed(self, event:Button.Pressed) -> None:
         error = self.query_one("#UserPassswordError", Static)
-        if not self.selected_UserPassword or self.selected_UserPassword != self.selected_UserPassword2: #AI          
+        if not self.selected_UserPassword or self.selected_UserPassword != self.selected_UserPassword2: #AI   Noted how it works       
             error.update("[#F85552]Passwords do not Match[/#F85552]")
             error.styles.display = "block"
             self.Needed_To_Start["User_Password_Matches"] = False
@@ -241,7 +241,7 @@ class SeconndScreen(Screen):
     @on(Button.Pressed, "#CheckRoot")
     def on_Check_Root_Pressed(self, event:Button.Pressed) -> None:
         error = self.query_one("#RootPassswordError", Static)
-        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:     #AI     
+        if not self.selected_RootPassword or self.selected_RootPassword != self.selected_RootPassword2:     #AI   Noted how it works      
             error.update("[#F85552]Passwords do not Match[/#F85552]")
             error.styles.display = "block"
             self.Needed_To_Start["Root_Password_Matches"] = False
@@ -279,7 +279,7 @@ class SeconndScreen(Screen):
                     ["sh", "-c", r"""iwctl station "$1" get-networks | sed 's/\x1b\[[0-9;]*m//g' | tail -n +5 | sed 's/^[ >]*//; s/ \{2,\}.*//' | grep -v '^$'""", "sh", event.value],  #AI
                     text=True,
                 )
-                new_options = [line for line in output.splitlines() if line.strip()] #AI
+                new_options = [line for line in output.splitlines() if line.strip()] #AI Noted how it Works
 
                 SSID_select.set_options((s, s) for s in new_options)  #AI
                 SSID_select.clear()                                     #AI
