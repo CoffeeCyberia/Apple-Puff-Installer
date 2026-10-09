@@ -283,7 +283,7 @@ class SeconndScreen(Screen):
 
                 SSID_select.set_options((s, s) for s in new_options)  #AI
                 SSID_select.clear()                                     #AI
-                SSID_select.styles.display = "block"                  #AI
+                SSID_select.styles.display = "block"                  #AI noted
                 Password_Input.clear()   
                 Password_Input.styles.display = "block"
                 Connect_Button.styles.display = "block"
@@ -294,7 +294,7 @@ class SeconndScreen(Screen):
                 ConnectionStatus.styles.display = "block"
             
         elif "en" in event.value:
-            ConnectionStatus.styles.display = "none"        #AI
+            ConnectionStatus.styles.display = "none"        #AI noted
             command = "/sys/class/net/" + event.value + "/operstate"
             LANOUT = subprocess.check_output(
             ["cat", command],

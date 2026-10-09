@@ -41,12 +41,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "line.strip.md",
+                "file": "Python/SSID_select.styles.display.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "line.strip"
+              "title": "SSID_select.styles.display"
             }
           }
         ],
@@ -219,8 +219,9 @@
   },
   "active": "92fc8661e5118015",
   "lastOpenFiles": [
-    "Python/Passwort check.md",
     "line.strip.md",
+    "Python/SSID_select.styles.display.md",
+    "Python/Passwort check.md",
     "Python/Subprocess/subprocess.md",
     "Python/Textual/Logo Label.md",
     "TCSS/TCSS.md",
